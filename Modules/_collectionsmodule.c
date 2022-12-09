@@ -1508,13 +1508,15 @@ deque_init(dequeobject *deque, PyObject *args, PyObject *kwdargs)
 static PyObject *
 deque_sizeof(dequeobject *deque, void *unused)
 {
-    size_t res = _PyObject_SIZE(Py_TYPE(deque));
-    size_t blocks;
+    Py_ssize_t res;
+    Py_ssize_t blocks;
+
+    res = _PyObject_SIZE(Py_TYPE(deque));
     blocks = (size_t)(deque->leftindex + Py_SIZE(deque) + BLOCKLEN - 1) / BLOCKLEN;
-    assert(((size_t)deque->leftindex + (size_t)Py_SIZE(deque) - 1) ==
-           ((blocks - 1) * BLOCKLEN + (size_t)deque->rightindex));
+    assert(deque->leftindex + Py_SIZE(deque) - 1 ==
+           (blocks - 1) * BLOCKLEN + deque->rightindex);
     res += blocks * sizeof(block);
-    return PyLong_FromSize_t(res);
+    return PyLong_FromSsize_t(res);
 }
 
 PyDoc_STRVAR(sizeof_doc,

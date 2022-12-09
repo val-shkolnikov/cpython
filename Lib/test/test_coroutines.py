@@ -2418,8 +2418,7 @@ class UnawaitedWarningDuringShutdownTest(unittest.TestCase):
     def test_unawaited_warning_during_shutdown(self):
         code = ("import asyncio\n"
                 "async def f(): pass\n"
-                "async def t(): asyncio.gather(f())\n"
-                "asyncio.run(t())\n")
+                "asyncio.gather(f())\n")
         assert_python_ok("-c", code)
 
         code = ("import sys\n"

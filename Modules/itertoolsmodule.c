@@ -56,13 +56,11 @@ static PyTypeObject pairwise_type;
 /* batched object ************************************************************/
 
 /* Note:  The built-in zip() function includes a "strict" argument
-   that was needed because that function would silently truncate data,
-   and there was no easy way for a user to detect the data loss.
-   The same reasoning does not apply to batched() which never drops data.
-   Instead, batched() produces a shorter tuple which can be handled
-   as the user sees fit.  If requested, it would be reasonable to add
-   "fillvalue" support which had demonstrated value in zip_longest().
-   For now, the API is kept simple and clean.
+   that is needed because that function can silently truncate data
+   and there is no easy way for a user to detect that condition.
+   The same reasoning does not apply to batched() which never drops
+   data.  Instead, it produces a shorter list which can be handled
+   as the user sees fit.
  */
 
 typedef struct {
@@ -76,25 +74,25 @@ typedef struct {
 itertools.batched.__new__ as batched_new
     iterable: object
     n: Py_ssize_t
-Batch data into tuples of length n. The last batch may be shorter than n.
+Batch data into lists of length n. The last batch may be shorter than n.
 
-Loops over the input iterable and accumulates data into tuples
+Loops over the input iterable and accumulates data into lists
 up to size n.  The input is consumed lazily, just enough to
-fill a batch.  The result is yielded as soon as a batch is full
+fill a list.  The result is yielded as soon as a batch is full
 or when the input iterable is exhausted.
 
     >>> for batch in batched('ABCDEFG', 3):
     ...     print(batch)
     ...
-    ('A', 'B', 'C')
-    ('D', 'E', 'F')
-    ('G',)
+    ['A', 'B', 'C']
+    ['D', 'E', 'F']
+    ['G']
 
 [clinic start generated code]*/
 
 static PyObject *
 batched_new_impl(PyTypeObject *type, PyObject *iterable, Py_ssize_t n)
-/*[clinic end generated code: output=7ebc954d655371b6 input=ffd70726927c5129]*/
+/*[clinic end generated code: output=7ebc954d655371b6 input=f28fd12cb52365f0]*/
 {
     PyObject *it;
     batchedobject *bo;
@@ -152,12 +150,12 @@ batched_next(batchedobject *bo)
     if (it == NULL) {
         return NULL;
     }
-    result = PyTuple_New(n);
+    result = PyList_New(n);
     if (result == NULL) {
         return NULL;
     }
     iternextfunc iternext = *Py_TYPE(it)->tp_iternext;
-    PyObject **items = _PyTuple_ITEMS(result);
+    PyObject **items = _PyList_ITEMS(result);
     for (i=0 ; i < n ; i++) {
         item = iternext(it);
         if (item == NULL) {
@@ -1370,7 +1368,6 @@ cycle_setstate(cycleobject *lz, PyObject *state)
         PyErr_SetString(PyExc_TypeError, "state is not a tuple");
         return NULL;
     }
-    // The second item can be 1/0 in old pickles and True/False in new pickles
     if (!PyArg_ParseTuple(state, "O!i", &PyList_Type, &saved, &firstpass)) {
         return NULL;
     }
@@ -2487,9 +2484,11 @@ product_dealloc(productobject *lz)
 static PyObject *
 product_sizeof(productobject *lz, void *unused)
 {
-    size_t res = _PyObject_SIZE(Py_TYPE(lz));
-    res += (size_t)PyTuple_GET_SIZE(lz->pools) * sizeof(Py_ssize_t);
-    return PyLong_FromSize_t(res);
+    Py_ssize_t res;
+
+    res = _PyObject_SIZE(Py_TYPE(lz));
+    res += PyTuple_GET_SIZE(lz->pools) * sizeof(Py_ssize_t);
+    return PyLong_FromSsize_t(res);
 }
 
 PyDoc_STRVAR(sizeof_doc, "Returns size in memory, in bytes.");
@@ -2818,9 +2817,11 @@ combinations_dealloc(combinationsobject *co)
 static PyObject *
 combinations_sizeof(combinationsobject *co, void *unused)
 {
-    size_t res = _PyObject_SIZE(Py_TYPE(co));
-    res += (size_t)co->r * sizeof(Py_ssize_t);
-    return PyLong_FromSize_t(res);
+    Py_ssize_t res;
+
+    res = _PyObject_SIZE(Py_TYPE(co));
+    res += co->r * sizeof(Py_ssize_t);
+    return PyLong_FromSsize_t(res);
 }
 
 static int
@@ -3152,9 +3153,11 @@ cwr_dealloc(cwrobject *co)
 static PyObject *
 cwr_sizeof(cwrobject *co, void *unused)
 {
-    size_t res = _PyObject_SIZE(Py_TYPE(co));
-    res += (size_t)co->r * sizeof(Py_ssize_t);
-    return PyLong_FromSize_t(res);
+    Py_ssize_t res;
+
+    res = _PyObject_SIZE(Py_TYPE(co));
+    res += co->r * sizeof(Py_ssize_t);
+    return PyLong_FromSsize_t(res);
 }
 
 static int
@@ -3495,10 +3498,12 @@ permutations_dealloc(permutationsobject *po)
 static PyObject *
 permutations_sizeof(permutationsobject *po, void *unused)
 {
-    size_t res = _PyObject_SIZE(Py_TYPE(po));
-    res += (size_t)PyTuple_GET_SIZE(po->pool) * sizeof(Py_ssize_t);
-    res += (size_t)po->r * sizeof(Py_ssize_t);
-    return PyLong_FromSize_t(res);
+    Py_ssize_t res;
+
+    res = _PyObject_SIZE(Py_TYPE(po));
+    res += PyTuple_GET_SIZE(po->pool) * sizeof(Py_ssize_t);
+    res += po->r * sizeof(Py_ssize_t);
+    return PyLong_FromSsize_t(res);
 }
 
 static int

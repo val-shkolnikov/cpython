@@ -685,9 +685,9 @@ free_keys_object(PyDictKeysObject *keys)
 }
 
 static inline PyDictValues*
-new_values(size_t size)
+new_values(Py_ssize_t size)
 {
-    assert(size >= 1);
+    assert(size > 0);
     size_t prefix_size = _Py_SIZE_ROUND_UP(size+2, sizeof(PyObject *));
     assert(prefix_size < 256);
     size_t n = prefix_size + size * sizeof(PyObject *);
@@ -746,24 +746,27 @@ new_dict(PyDictKeysObject *keys, PyDictValues *values, Py_ssize_t used, int free
     return (PyObject *)mp;
 }
 
-static inline size_t
+static inline Py_ssize_t
 shared_keys_usable_size(PyDictKeysObject *keys)
 {
-    return (size_t)keys->dk_nentries + (size_t)keys->dk_usable;
+    return keys->dk_nentries + keys->dk_usable;
 }
 
 /* Consumes a reference to the keys object */
 static PyObject *
 new_dict_with_shared_keys(PyDictKeysObject *keys)
 {
-    size_t size = shared_keys_usable_size(keys);
-    PyDictValues *values = new_values(size);
+    PyDictValues *values;
+    Py_ssize_t i, size;
+
+    size = shared_keys_usable_size(keys);
+    values = new_values(size);
     if (values == NULL) {
         dictkeys_decref(keys);
         return PyErr_NoMemory();
     }
     ((char *)values)[-2] = 0;
-    for (size_t i = 0; i < size; i++) {
+    for (i = 0; i < size; i++) {
         values->values[i] = NULL;
     }
     return new_dict(keys, values, 0, 1);
@@ -778,7 +781,7 @@ clone_combined_dict_keys(PyDictObject *orig)
     assert(orig->ma_values == NULL);
     assert(orig->ma_keys->dk_refcnt == 1);
 
-    size_t keys_size = _PyDict_KeysSize(orig->ma_keys);
+    Py_ssize_t keys_size = _PyDict_KeysSize(orig->ma_keys);
     PyDictKeysObject *keys = PyObject_Malloc(keys_size);
     if (keys == NULL) {
         PyErr_NoMemory();
@@ -2956,6 +2959,7 @@ PyDict_Copy(PyObject *o)
 {
     PyObject *copy;
     PyDictObject *mp;
+    Py_ssize_t i, n;
 
     if (o == NULL || !PyDict_Check(o)) {
         PyErr_BadInternalCall();
@@ -2970,8 +2974,9 @@ PyDict_Copy(PyObject *o)
 
     if (_PyDict_HasSplitTable(mp)) {
         PyDictObject *split_copy;
-        size_t size = shared_keys_usable_size(mp->ma_keys);
-        PyDictValues *newvalues = new_values(size);
+        Py_ssize_t size = shared_keys_usable_size(mp->ma_keys);
+        PyDictValues *newvalues;
+        newvalues = new_values(size);
         if (newvalues == NULL)
             return PyErr_NoMemory();
         split_copy = PyObject_GC_New(PyDictObject, &PyDict_Type);
@@ -2986,7 +2991,7 @@ PyDict_Copy(PyObject *o)
         split_copy->ma_used = mp->ma_used;
         split_copy->ma_version_tag = DICT_NEXT_VERSION();
         dictkeys_incref(mp->ma_keys);
-        for (size_t i = 0; i < size; i++) {
+        for (i = 0, n = size; i < n; i++) {
             PyObject *value = mp->ma_values->values[i];
             split_copy->ma_values->values[i] = Py_XNewRef(value);
         }
@@ -3509,7 +3514,9 @@ static PyObject *dictiter_new(PyDictObject *, PyTypeObject *);
 Py_ssize_t
 _PyDict_SizeOf(PyDictObject *mp)
 {
-    size_t res = _PyObject_SIZE(Py_TYPE(mp));
+    Py_ssize_t res;
+
+    res = _PyObject_SIZE(Py_TYPE(mp));
     if (mp->ma_values) {
         res += shared_keys_usable_size(mp->ma_keys) * sizeof(PyObject*);
     }
@@ -3518,19 +3525,17 @@ _PyDict_SizeOf(PyDictObject *mp)
     if (mp->ma_keys->dk_refcnt == 1) {
         res += _PyDict_KeysSize(mp->ma_keys);
     }
-    assert(res <= (size_t)PY_SSIZE_T_MAX);
-    return (Py_ssize_t)res;
+    return res;
 }
 
-size_t
+Py_ssize_t
 _PyDict_KeysSize(PyDictKeysObject *keys)
 {
-    size_t es = (keys->dk_kind == DICT_KEYS_GENERAL
-                 ? sizeof(PyDictKeyEntry) : sizeof(PyDictUnicodeEntry));
-    size_t size = sizeof(PyDictKeysObject);
-    size += (size_t)1 << keys->dk_log2_index_bytes;
-    size += USABLE_FRACTION((size_t)DK_SIZE(keys)) * es;
-    return size;
+    size_t es = keys->dk_kind == DICT_KEYS_GENERAL
+        ?  sizeof(PyDictKeyEntry) : sizeof(PyDictUnicodeEntry);
+    return (sizeof(PyDictKeysObject)
+            + ((size_t)1 << keys->dk_log2_index_bytes)
+            + USABLE_FRACTION(DK_SIZE(keys)) * es);
 }
 
 static PyObject *
@@ -5281,15 +5286,16 @@ init_inline_values(PyObject *obj, PyTypeObject *tp)
     if (keys->dk_usable > 1) {
         keys->dk_usable--;
     }
-    size_t size = shared_keys_usable_size(keys);
+    Py_ssize_t size = shared_keys_usable_size(keys);
+    assert(size > 0);
     PyDictValues *values = new_values(size);
     if (values == NULL) {
         PyErr_NoMemory();
         return -1;
     }
-    assert(((uint8_t *)values)[-1] >= (size + 2));
+    assert(((uint8_t *)values)[-1] >= size+2);
     ((uint8_t *)values)[-2] = 0;
-    for (size_t i = 0; i < size; i++) {
+    for (int i = 0; i < size; i++) {
         values->values[i] = NULL;
     }
     _PyDictOrValues_SetValues(_PyObject_DictOrValuesPointer(obj), values);
@@ -5329,8 +5335,7 @@ make_dict_from_instance_attributes(PyDictKeysObject *keys, PyDictValues *values)
     dictkeys_incref(keys);
     Py_ssize_t used = 0;
     Py_ssize_t track = 0;
-    size_t size = shared_keys_usable_size(keys);
-    for (size_t i = 0; i < size; i++) {
+    for (Py_ssize_t i = 0; i < shared_keys_usable_size(keys); i++) {
         PyObject *val = values->values[i];
         if (val != NULL) {
             used += 1;

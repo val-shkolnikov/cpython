@@ -436,10 +436,10 @@
         }
 
         TARGET(BINARY_SUBSCR_GETITEM) {
-            PyObject *sub = PEEK(1);
-            PyObject *container = PEEK(2);
             uint32_t type_version = read_u32(next_instr + 1);
             uint16_t func_version = read_u16(next_instr + 3);
+            PyObject *sub = PEEK(1);
+            PyObject *container = PEEK(2);
             PyTypeObject *tp = Py_TYPE(container);
             DEOPT_IF(tp->tp_version_tag != type_version, BINARY_SUBSCR);
             assert(tp->tp_flags & Py_TPFLAGS_HEAPTYPE);
@@ -628,10 +628,7 @@
             DTRACE_FUNCTION_EXIT();
             _Py_LeaveRecursiveCallPy(tstate);
             assert(frame != &entry_frame);
-            // GH-99729: We need to unlink the frame *before* clearing it:
-            _PyInterpreterFrame *dying = frame;
-            frame = cframe.current_frame = dying->previous;
-            _PyEvalFrameClearAndPop(tstate, dying);
+            frame = cframe.current_frame = pop_frame(tstate, frame);
             _PyFrame_StackPush(frame, retval);
             goto resume_frame;
         }
@@ -2641,15 +2638,14 @@
             STAT_INC(FOR_ITER, hit);
             _Py_CODEUNIT next = next_instr[INLINE_CACHE_ENTRIES_FOR_ITER];
             assert(_PyOpcode_Deopt[_Py_OPCODE(next)] == STORE_FAST);
-            if (r->len <= 0) {
+            if (r->index >= r->len) {
                 STACK_SHRINK(1);
                 Py_DECREF(r);
                 JUMPBY(INLINE_CACHE_ENTRIES_FOR_ITER + oparg + 1);
             }
             else {
-                long value = r->start;
-                r->start = value + r->step;
-                r->len--;
+                long value = (long)(r->start +
+                                    (unsigned long)(r->index++) * r->step);
                 if (_PyLong_AssignValue(&GETLOCAL(_Py_OPARG(next)), value) < 0) {
                     goto error;
                 }

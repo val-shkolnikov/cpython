@@ -747,29 +747,29 @@ _tkinter_create(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
     if (nargs < 4) {
         goto skip_optional;
     }
-    interactive = PyObject_IsTrue(args[3]);
-    if (interactive < 0) {
+    interactive = _PyLong_AsInt(args[3]);
+    if (interactive == -1 && PyErr_Occurred()) {
         goto exit;
     }
     if (nargs < 5) {
         goto skip_optional;
     }
-    wantobjects = PyObject_IsTrue(args[4]);
-    if (wantobjects < 0) {
+    wantobjects = _PyLong_AsInt(args[4]);
+    if (wantobjects == -1 && PyErr_Occurred()) {
         goto exit;
     }
     if (nargs < 6) {
         goto skip_optional;
     }
-    wantTk = PyObject_IsTrue(args[5]);
-    if (wantTk < 0) {
+    wantTk = _PyLong_AsInt(args[5]);
+    if (wantTk == -1 && PyErr_Occurred()) {
         goto exit;
     }
     if (nargs < 7) {
         goto skip_optional;
     }
-    sync = PyObject_IsTrue(args[6]);
-    if (sync < 0) {
+    sync = _PyLong_AsInt(args[6]);
+    if (sync == -1 && PyErr_Occurred()) {
         goto exit;
     }
     if (nargs < 8) {
@@ -865,4 +865,4 @@ exit:
 #ifndef _TKINTER_TKAPP_DELETEFILEHANDLER_METHODDEF
     #define _TKINTER_TKAPP_DELETEFILEHANDLER_METHODDEF
 #endif /* !defined(_TKINTER_TKAPP_DELETEFILEHANDLER_METHODDEF) */
-/*[clinic end generated code: output=2a4e3bf8448604b5 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=d022835d05fc8608 input=a9049054013a1b77]*/

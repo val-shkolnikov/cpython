@@ -559,7 +559,7 @@ class FastCallTests(unittest.TestCase):
                 self.kwargs.clear()
                 gc.collect()
                 return 0
-        x = IntWithDict(optimize=IntWithDict())
+        x = IntWithDict(dont_inherit=IntWithDict())
         # We test the argument handling of "compile" here, the compilation
         # itself is not relevant. When we pass flags=x below, x.__index__() is
         # called, which changes the keywords dict.

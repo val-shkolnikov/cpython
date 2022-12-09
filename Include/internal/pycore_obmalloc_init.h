@@ -56,7 +56,6 @@ extern "C" {
 
 #define _obmalloc_state_INIT(obmalloc) \
     { \
-        .dump_debug_stats = -1, \
         .pools = { \
             .used = _obmalloc_pools_INIT(obmalloc.pools), \
         }, \

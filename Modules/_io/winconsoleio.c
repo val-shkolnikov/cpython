@@ -235,7 +235,7 @@ winconsoleio_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 _io._WindowsConsoleIO.__init__
     file as nameobj: object
     mode: str = "r"
-    closefd: bool = True
+    closefd: bool(accept={int}) = True
     opener: object = None
 
 Open a console buffer by file descriptor.
@@ -249,7 +249,7 @@ static int
 _io__WindowsConsoleIO___init___impl(winconsoleio *self, PyObject *nameobj,
                                     const char *mode, int closefd,
                                     PyObject *opener)
-/*[clinic end generated code: output=3fd9cbcdd8d95429 input=7a3eed6bbe998fd9]*/
+/*[clinic end generated code: output=3fd9cbcdd8d95429 input=06ae4b863c63244b]*/
 {
     const char *s;
     wchar_t *name = NULL;

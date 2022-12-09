@@ -4680,17 +4680,16 @@ static PyObject *
 type___sizeof___impl(PyTypeObject *self)
 /*[clinic end generated code: output=766f4f16cd3b1854 input=99398f24b9cf45d6]*/
 {
-    size_t size;
+    Py_ssize_t size;
     if (self->tp_flags & Py_TPFLAGS_HEAPTYPE) {
         PyHeapTypeObject* et = (PyHeapTypeObject*)self;
         size = sizeof(PyHeapTypeObject);
         if (et->ht_cached_keys)
             size += _PyDict_KeysSize(et->ht_cached_keys);
     }
-    else {
+    else
         size = sizeof(PyTypeObject);
-    }
-    return PyLong_FromSize_t(size);
+    return PyLong_FromSsize_t(size);
 }
 
 static PyMethodDef type_methods[] = {

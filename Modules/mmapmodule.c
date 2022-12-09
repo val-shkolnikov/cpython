@@ -804,11 +804,12 @@ mmap__repr__method(PyObject *self)
 static PyObject *
 mmap__sizeof__method(mmap_object *self, void *unused)
 {
-    size_t res = _PyObject_SIZE(Py_TYPE(self));
-    if (self->tagname) {
+    Py_ssize_t res;
+
+    res = _PyObject_SIZE(Py_TYPE(self));
+    if (self->tagname)
         res += strlen(self->tagname) + 1;
-    }
-    return PyLong_FromSize_t(res);
+    return PyLong_FromSsize_t(res);
 }
 #endif
 
